@@ -8,32 +8,50 @@ import prompt from 'prompt-sync'
 // TODO: General Optimizations
 
 const input = prompt({ sigint: true })
+const folder = input('Copy your images folder: ')
 
-const folder = input('Copy yout images folder: ')
+//replace white spaces with dash
+function normalizeImageName(imagePath) {
+	const dirName = path.dirname(imagePath)
+	const imageName = path.basename(imagePath)
+	const newImageName = imageName.slice().toLowerCase().replaceAll(' ', '-')
+	fs.renameSync(imagePath, path.join(dirName, newImageName))
+	return newImageName
+}
 
-const filesNames = fs.readdirSync(folder)
+// greatest common divisor
+function GCD(a, b) {
+	if (!b) return a
+	return GCD(b, a % b)
+}
 
-let filesArr = []
+// get Images Width and Height with his AspectRatio
+function getImageInfo(imagePath) {
+	const { width, height } = sizeOf(imagePath)
 
-filesNames.forEach(file => {
-	const newFileName = file.slice().toLowerCase().replaceAll(' ', '-')
-	const filePath = path.join(folder, file)
-	const newFilePath = path.join(folder, newFileName)
+	const factor = GCD(width, height)
 
-	fs.renameSync(filePath, newFilePath)
-
-	const dimensions = sizeOf(newFilePath)
-
-	filesArr = [
-		...filesArr,
-		{
-			url: newFileName,
-			size: {
-				width: dimensions.width,
-				height: dimensions.height,
-			},
+	return {
+		url: path.basename(imagePath),
+		size: {
+			width,
+			height,
+			aspectRatio: `${width / factor} / ${height / factor}`,
 		},
-	]
-})
+	}
+}
 
-fs.writeFileSync('./output.js', `const data = ${JSON.stringify(filesArr)}`)
+function main(folder) {
+	let groupedImages = []
+	fs.readdirSync(folder).forEach(file => {
+		const filePath = path.join(folder, file)
+		if (fs.lstatSync(filePath).isDirectory()) {
+			groupedImages = [...groupedImages, { name: file, images: main(filePath) }]
+		} else {
+			groupedImages = [...groupedImages, getImageInfo(filePath)]
+		}
+	})
+	return groupedImages
+}
+
+fs.writeFileSync('./output.js', `const data = ${JSON.stringify(main(folder))}`)
