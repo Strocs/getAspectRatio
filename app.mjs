@@ -8,7 +8,7 @@ import prompt from 'prompt-sync'
 // TODO: General Optimizations
 
 const input = prompt({ sigint: true })
-const folder = input('Copy your images folder: ')
+const folder = input('Images folder: ')
 
 //replace white spaces with dash
 function normalizeImageName(imagePath) {
@@ -53,5 +53,5 @@ function main(folder) {
 	})
 	return groupedImages
 }
-
-fs.writeFileSync('./output.js', `const data = ${JSON.stringify(main(folder))}`)
+const output = input('Output folder: ')
+fs.writeFileSync(`${output}/images.data.js`, `export const imagesData = ${JSON.stringify(main(folder))}`)
